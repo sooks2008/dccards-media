@@ -23,6 +23,14 @@ WATCH = crop('04_stats.png', (170, 1930, 1150, 2470))
 REW_TOP = crop('06_rewards.png', (170, 730, 1150, 1610))
 REW_BOT = crop('06_rewards.png', (170, 1610, 1150, 2650))
 VAULT = crop('01_vault.png', (170, 640, 1150, 2400))
+VAULT_TOP = crop('01_vault.png', (170, 745, 1150, 1330))
+MAP, STORE = sr.MAP, sr.STORE
+VS = MEDIA + '/posts/2026-11-vault-social/instagram_carousel/'
+FEED = Image.open(VS + '04_feed.png').convert('RGB').crop((184, 384, 896, 1279))
+MARKET = Image.open(VS + '05_market.png').convert('RGB').crop((184, 384, 896, 1279))
+CHAT = Image.open(VS + '06_chat.png').convert('RGB').crop((103, 384, 976, 1279))
+CF = 'Sources/DCCCardTrackerCore/Resources/CardFronts/'
+PINK = (220, 90, 170)
 
 
 # ---------- slide builders ----------
@@ -49,16 +57,41 @@ def shot(W, H, top, kicker, head, ims, border=GOLD, note=None):
     return c
 
 
-def cta(W, H, top, head, sub):
+def cta(W, H, top, head, sub, kicker='NOW IN ALPHA', cta_text='Join the alpha at dccardsapp.com'):
     c = base(W, H); d = ImageDraw.Draw(c); y = top
-    ctext(d, W, y, 'NOW IN ALPHA', pop(int(W * .03)), GOLD, track=8); y += int(W * .03) + 50
+    ctext(d, W, y, kicker, pop(int(W * .03)), GOLD, track=8); y += int(W * .03) + 50
     y = lines(d, W, y, head, lora(int(W * .085)), TEXT, 1.25) + 10
     y = lines(d, W, y, sub, lora(int(W * .045), 'Regular'), MUTED, 1.4) + 70
     sz = int(W * .2); glowicon(c, sz, (W - sz) // 2, y); y += sz + 80
-    y = pill(d, W, y, 'Join the alpha at dccardsapp.com', pop(int(W * .042), 'Bold'), BG, GOLD, 56, 26) + 40
+    y = pill(d, W, y, cta_text, pop(int(W * .042), 'Bold'), BG, GOLD, 56, 26) + 40
     ctext(d, W, y, 'Link in bio', pop(int(W * .034)), TEXT); y += int(W * .034) + 90
     lines(d, W, y, ['iPhone now · Android coming soon', 'Fan-made, not affiliated with',
                     'Dungeon Crawler Carl or Matt Dinniman'], pop(int(W * .024), 'Regular'), MUTED, 1.6)
+    return c
+
+
+def textslide(W, H, top, kicker, head, body, pills):
+    c = base(W, H); d = ImageDraw.Draw(c); y = kicker_head(c, W, top, kicker, head, int(W * .075)) + 60
+    y = lines(d, W, y, body, pop(int(W * .036), 'Regular'), MUTED, 1.55) + 70
+    for label, t in pills:
+        ctext(d, W, y, label, pop(int(W * .028)), GOLD, track=6); y += int(W * .028) + 26
+        y = pill(d, W, y, t, pop(int(W * .04), 'Bold'), BG, GOLD, 48, 22) + 70
+    return c
+
+
+def cardgrid(W, H, top, kicker, head, cards, note):
+    """2x2 grid of numbered card fronts (cards: list of (file stem, name))."""
+    c = base(W, H); d = ImageDraw.Draw(c); y = kicker_head(c, W, top, kicker, head, int(W * .075)) + 50
+    gap = int(W * .05); cw = int(min((W * .86 - gap) / 2, ((H - y - 230) / 2 - 70) * 750 / 1050)); ch = int(cw * 1050 / 750)
+    x0 = (W - 2 * cw - gap) // 2
+    for i, (stem, name) in enumerate(cards):
+        x = x0 + (i % 2) * (cw + gap); yy = y + (i // 2) * (ch + 90)
+        im = Image.open(CF + stem + '.jpg').convert('RGB'); f = framed(im, cw, radius=24); place(c, f, x, yy)
+        r = int(W * .035); d = ImageDraw.Draw(c)
+        d.ellipse([x - r // 2, yy - r // 2, x + r * 3 // 2, yy + r * 3 // 2], fill=GOLD)
+        nf = pop(int(r * 1.2), 'Bold'); n = str(i + 1); d.text((x + r // 2 - d.textlength(n, font=nf) / 2, yy + r // 2 - nf.size * .62), n, font=nf, fill=BG)
+        ctext(d, cw, yy + ch + 14, name, pop(int(W * .03)), TEXT, x0=x)
+    lines(ImageDraw.Draw(c), W, y + 2 * ch + 190, note, pop(int(W * .036), 'Regular'), MUTED, 1.5)
     return c
 
 
@@ -96,6 +129,70 @@ POSTS = {
         ('02_card', lambda W, H, v: shot(W, H, 220 if v else 80, 'RAREST ON DISPLAY', ['Your best pull,', 'always on top'], DETAIL_CARD)),
         ('03_vault', lambda W, H, v: shot(W, H, 220 if v else 80, 'YOUR VAULT', ['All 188 cards.', 'Every pull, tracked.'], VAULT)),
         ('04_join_alpha', lambda W, H, v: cta(W, H, 380 if v else 130, ['Show off', 'your pulls.'], SUB)),
+    ],
+    '2026-11-android': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['Android', "crawlers, you're", 'next.'],
+                                         ['DCCards is coming to Android.'], 'SAME APP · SAME VAULT')),
+        ('02_crossplay', lambda W, H, v: shot(W, H, 220 if v else 80, 'IPHONE + ANDROID', ['One community.', 'Every crawler.'], FEED, border=PINK)),
+        ('03_trade', lambda W, H, v: shot(W, H, 220 if v else 90, 'CROSS-PLATFORM', ['Chat, trade and sell', 'across iPhone and Android'], MARKET, border=PINK)),
+        ('04_signup', lambda W, H, v: cta(W, H, 380 if v else 130, ['Android is', 'on the way.'], ['Sign up to hear the moment', 'it lands.'],
+                                          kicker='COMING SOON', cta_text='Sign up at dccardsapp.com')),
+    ],
+    '2026-11-trading': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['Trade with', 'crawlers.', 'Not scalpers.'],
+                                         ['The DCCards Market is open.'], 'BUY · SELL · TRADE')),
+        ('02_market', lambda W, H, v: shot(W, H, 220 if v else 80, 'THE MARKET', ['List your extras.', 'Find your missing cards.'], MARKET, border=PINK)),
+        ('03_chat', lambda W, H, v: shot(W, H, 220 if v else 80, 'DIRECT MESSAGES', ['Make the deal', 'right in the app'], CHAT, border=PINK)),
+        ('04_join_alpha', lambda W, H, v: cta(W, H, 380 if v else 130, ['Make the deal.'], SUB)),
+    ],
+    '2026-11-completion': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['How many', 'of the 188', 'do you have?'],
+                                         ['Be honest.'], 'COUNT YOUR VAULT')),
+        ('02_progress', lambda W, H, v: shot(W, H, 220 if v else 90, 'SET PROGRESS', ['See exactly how close', 'you are to all 188'], VAULT_TOP,
+                                             note=['Tap Unowned and you have', 'your hunt list. (Or your wishlist.)'])),
+        ('03_vault', lambda W, H, v: shot(W, H, 220 if v else 80, 'YOUR VAULT', ['Every card you own,', 'every version, every value'], VAULT)),
+        ('04_join_alpha', lambda W, H, v: cta(W, H, 380 if v else 130, ['Finish the set.'], SUB)),
+    ],
+    '2026-11-pick-one': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['Pick one.'],
+                                         ['Which DCC card would', 'you pull first?'], 'COMMENT 1, 2, 3 OR 4')),
+        ('02_cards', lambda W, H, v: cardgrid(W, H, 220 if v else 70, 'PICK ONE', ['Which would you pull?'],
+                                              [('DCC-S1-011', 'Princess Donut'), ('DCC-S1-016', 'Prepotente'),
+                                               ('DCC-S1-041', 'Sluggalo'), ('DCC-S1-056', 'Clay-ton')], ['Drop your number in the comments.'])),
+        ('03_join_alpha', lambda W, H, v: cta(W, H, 380 if v else 130, ['Build your', 'Vault.'], SUB)),
+    ],
+    '2026-11-black-friday': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['Black Friday', 'pack hunt?'],
+                                         ['Check Stock Radar first.'], 'BEAT THE SCALPERS')),
+        ('02_map', lambda W, H, v: shot(W, H, 220 if v else 80, 'STOCK RADAR', ['See which stores', 'near you have packs'], MAP)),
+        ('03_store', lambda W, H, v: shot(W, H, 220 if v else 90, 'CROWD-CONFIRMED', ['Crawlers report stock', 'in real time'], STORE, border=GREEN,
+                                          note=['Spot packs on the shelf? One tap', 'and every crawler nearby knows.'])),
+        ('04_join_alpha', lambda W, H, v: cta(W, H, 380 if v else 130, ['Hunt smarter.'], SUB)),
+    ],
+    '2026-11-community': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['Help build', 'DCCards.'],
+                                         ['Request features. Report bugs.', "Shape what's next."], 'JOIN THE CREW')),
+        ('02_where', lambda W, H, v: textslide(W, H, 300 if v else 120, 'FIND US', ['Built with crawlers,', 'for crawlers'],
+                                               ['DCCards is made by a fan, and the', 'roadmap comes from you.'],
+                                               [('DISCORD', 'discord.gg/SUpuY28xhY'), ('REDDIT', 'r/DCCardsApp')])),
+        ('03_join_alpha', lambda W, H, v: cta(W, H, 380 if v else 130, ['Get in early.'], SUB)),
+    ],
+    '2026-11-countdown': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ['2 days.'],
+                                         ['DCCards hits the App Store', 'December 1.'], 'LAUNCH COUNTDOWN')),
+        ('02_vault', lambda W, H, v: shot(W, H, 220 if v else 80, 'TRACK', ['All 188 cards.', 'Every pull.'], VAULT)),
+        ('03_social', lambda W, H, v: shot(W, H, 220 if v else 80, 'SHOW OFF & TRADE', ['Your pulls,', 'your people'], FEED, border=PINK)),
+        ('04_ready', lambda W, H, v: cta(W, H, 380 if v else 130, ['Be ready.'], SUB, kicker='DECEMBER 1', cta_text='dccardsapp.com')),
+    ],
+    '2026-12-launch': [
+        ('01_hook', lambda W, H, v: hook(W, H, 420 if v else 140, ["It's here."],
+                                         ['DCCards is live on', 'the App Store.'], 'DOWNLOAD NOW')),
+        ('02_vault', lambda W, H, v: shot(W, H, 220 if v else 80, 'YOUR VAULT', ['All 188 cards.', 'Every pull, tracked.'], VAULT)),
+        ('03_prices', lambda W, H, v: shot(W, H, 220 if v else 80, 'LIVE MARKET STATS', ['Real eBay', 'sold prices'], CHART, border=GREEN)),
+        ('04_social', lambda W, H, v: shot(W, H, 220 if v else 80, 'CRAWLER SOCIAL', ['Post pulls.', 'Trade with crawlers.'], FEED, border=PINK)),
+        ('05_radar', lambda W, H, v: shot(W, H, 220 if v else 80, 'STOCK RADAR', ['Find packs before', 'the scalpers do'], MAP)),
+        ('06_download', lambda W, H, v: cta(W, H, 380 if v else 130, ['Welcome to the', 'dungeon, crawler.'], SUB,
+                                            kicker='OUT NOW ON IPHONE', cta_text='Get it at dccardsapp.com')),
     ],
 }
 
